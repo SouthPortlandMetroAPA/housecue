@@ -65,14 +65,20 @@
       .v-f a:hover{text-decoration:underline}
       .tbadge{flex:none;background:#eef1f8;border:1px solid #dbe1ee;color:#33406b;border-radius:5px;
         padding:1px 6px;font-size:.7rem;font-weight:700;letter-spacing:.02em}
-      /* "Closed?" - reported closed by one source, NOT confirmed by the league.
-         Amber, not red, and it keeps its question mark: the honest state is
-         doubt, and a player who calls the number is how the doubt gets settled.
-         Deleting the pin instead would have destroyed that chance. */
+      /* Two closure states, and the badge must say WHICH.
+           Closed?            - reported by one source, unconfirmed. Amber, and
+                                it keeps its question mark: the honest state is
+                                doubt, and calling the number settles it.
+           Temporarily closed - confirmed by the league; it is coming back.
+         Both keep their pin and their phone. Deleting either would throw away
+         the one thing that resolves the question. */
       .xbadge{flex:none;background:#fff3d6;border:1px solid #e8c877;color:#8a5a00;border-radius:5px;
         padding:1px 6px;font-size:.7rem;font-weight:700;letter-spacing:.02em}
+      .xbadge.temp{background:#e6eefb;border-color:#b9cdea;color:#274a80}
       .v.is-x .v-n{color:var(--muted)}
       .v.is-x .v-m b{color:var(--muted)}
+      /* A venue that is coming back is not a dead venue - keep its name legible. */
+      .v.is-temp .v-n{color:var(--text)}
       body.mobile .v-f a,body.tablet .v-f a{padding:3px 0}   /* taller tap target */
       .empty{padding:26px 16px;text-align:center;color:var(--muted);font-size:.85rem}
 
@@ -81,7 +87,8 @@
       .pin-wrap:hover .pin{transform:scale(1.35)}
       .pin.sel{width:24px;height:24px;background:var(--spm-primary);border-width:3px;
         box-shadow:0 2px 10px rgba(234,0,42,.7)}
-      .pin.dead{background:#adb3bd}   /* matches the "Closed?" badge, on the map */
+      .pin.dead{background:#adb3bd}   /* unconfirmed closure, greyed on the map */
+      .pin.paused{background:#7d9bc8} /* temporarily closed - muted, not dead */
 
       .legend{position:absolute;z-index:600;right:10px;bottom:10px;background:rgba(255,255,255,.95);
         border:1px solid var(--border);border-radius:9px;padding:7px 9px;box-shadow:0 2px 8px rgba(0,0,0,.16);
@@ -204,7 +211,7 @@
   {n:"Ringo's",a:"3655 SW HALL BLVD",c:"Beaverton",r:"beaverton",lat:45.49337,lon:-122.808826,p:"503-644-7847",t:4},
   {n:"The Westgate Bourbon Bar & Taphouse",a:"3800 SW CEDAR HILLS BLVD",c:"Beaverton",r:"beaverton",lat:45.491752,lon:-122.810028,p:"503-746-7178",t:3},
   {n:"Backroads Pub & Grub",a:"13230 SE ORIENT DR",c:"Boring",r:"milwaukie",lat:45.427674,lon:-122.32085,p:"503-663-5777",t:2},
-  {n:"Timber Pub and Grub",a:"28052 SE HWY 212",c:"Boring",r:"milwaukie",lat:45.429895,lon:-122.374529,p:"503-663-6092",t:2},
+  {n:"Timber Pub and Grub",a:"28052 SE HWY 212",c:"Boring",r:"milwaukie",lat:45.429895,lon:-122.374529,p:"503-663-6092",t:2,x:"Confirmed by the league. Call before heading out.",xk:"temp"},
   {n:"Mike's Place",a:"404 NW 1ST AVE",c:"Canby",r:"oregoncity",lat:45.261596,lon:-122.696882,p:"503-266-9343",t:2},
   {n:"Watkins Park Pub",a:"16740 SE 82ND DR",c:"Clackamas",r:"milwaukie",lat:45.40125,lon:-122.56902,p:"503-655-4117",t:3},
   {n:"Leo's Lair Pub",a:"1034 BASELINE ST",c:"Cornelius",r:"hillsboro",lat:45.520135,lon:-123.059045,p:"503-357-2506",t:2},
@@ -221,13 +228,13 @@
   {n:"O'Brien's Pub",a:"2020 NE CORNELL RD",c:"Hillsboro",r:"hillsboro",lat:45.530129,lon:-122.961464,p:"503-547-0400",t:2},
   {n:"Player's Box",a:"1823 SE TUALATIN VALLEY HWY",c:"Hillsboro",r:"hillsboro",lat:45.50816,lon:-122.963998,p:"503-747-3249",t:4},
   {n:"Topgolf",a:"5505 NE HUFFMAN ST",c:"Hillsboro",r:"hillsboro",lat:45.559861,lon:-122.924092,p:"503-549-5197",t:2},
-  {n:"Gemini Bar & Grill",a:"456 N STATE ST",c:"Lake Oswego",r:"milwaukie",lat:45.420043,lon:-122.663129,p:"503-894-6377",t:6,x:"Reported ejected from the building in 2024; site now trades as The Cut Supper Club"},
+  {n:"Gemini Bar & Grill",a:"456 N STATE ST",c:"Lake Oswego",r:"milwaukie",lat:45.420043,lon:-122.663129,p:"503-894-6377",t:6,x:"Reported ejected from the building in 2024; site now trades as The Cut Supper Club",xk:"maybe"},
   {n:"Hanko's Sports Bar & Grill",a:"4 MONROE PKWY",c:"Lake Oswego",r:"tigard",lat:45.431834,lon:-122.703402,p:"503-697-7819",t:2},
   {n:"Jo's Saloon & Eatery",a:"4400 SE INTERNATIONAL Way",c:"Milwaukie",r:"milwaukie",lat:45.435865,lon:-122.617725,p:"503-653-6798",t:4},
   {n:"River Roadhouse",a:"11921 SE 22ND",c:"Milwaukie",r:"milwaukie",lat:45.438172,lon:-122.641178,p:"503-653-5885",t:3},
   {n:"The Grove Restaurant & Bar",a:"15300 SE MCLOUGHLIN BLVD",c:"Milwaukie",r:"milwaukie",lat:45.41207,lon:-122.62877,p:"503-653-1930",t:2},
   {n:"The Old Dolphin",a:"17180 SE McLoughlin Blvd",c:"Milwaukie",r:"milwaukie",lat:45.39974,lon:-122.61824,p:"503-908-1177",t:null},
-  {n:"Wichita Pub",a:"11481 SE HWY 212",c:"Milwaukie",r:"milwaukie",lat:45.408314,lon:-122.544875,p:"503-657-8344",t:2},
+  {n:"Wichita Pub",a:"11481 SE HWY 212",c:"Clackamas",r:"milwaukie",lat:45.408314,lon:-122.544875,p:"503-657-8344",t:2},
   {n:"Sundowner",a:"115 W MAIN ST",c:"Molalla",r:"oregoncity",lat:45.147661,lon:-122.577376,p:"503-829-6434",t:2},
   {n:"Wildhorse Bar & Grill",a:"110 S MOLALLA AVE",c:"Molalla",r:"oregoncity",lat:45.14712,lon:-122.577438,p:"503-600-0267",t:2},
   {n:"The Old Hitchin' Post Restaurant",a:"10565 NW GLENCOE RD",c:"North Plains",r:"hillsboro",lat:45.596817,lon:-122.99399,p:"503-647-5080",t:2},
@@ -242,9 +249,9 @@
   {n:"Garden Home Dugout",a:"7380 SW GARDEN HOME RD",c:"Portland",r:"tigard",lat:45.465568,lon:-122.75184,p:"503-206-5385",t:2},
   {n:"Greek Village Tavern",a:"301 NW MURRAY BLVD",c:"Portland",r:"beaverton",lat:45.520966,lon:-122.816588,p:"503-643-2119",t:4},
   {n:"Leo's Lair #2",a:"13587 NW CORNELL RD",c:"Portland",r:"beaverton",lat:45.528523,lon:-122.816054,p:"971-246-5528",t:2},
-  {n:"Mai Wah Restaurant",a:"18088 SE MCLOUGHLIN BLVD",c:"Portland",r:"milwaukie",lat:45.39174,lon:-122.61312,p:"503-659-0323",t:2},
-  {n:"O'Aces",a:"18080 SE McLoughlin Blvd",c:"Portland",r:"milwaukie",lat:45.392412,lon:-122.612951,p:"503-387-5116",t:null},
-  {n:"Silver Birch Kitchen + Lounge",a:"9225 SW ALLEN BLVD",c:"Portland",r:"beaverton",lat:45.47198,lon:-122.772312,p:"503-522-7499",t:2,x:"Reported closed March 2026; some directories still say temporarily closed for remodel"},
+  {n:"Mai Wah Restaurant",a:"18088 SE MCLOUGHLIN BLVD",c:"Milwaukie",r:"milwaukie",lat:45.39174,lon:-122.61312,p:"503-659-0323",t:2},
+  {n:"O'Aces",a:"18080 SE McLoughlin Blvd",c:"Milwaukie",r:"milwaukie",lat:45.392412,lon:-122.612951,p:"503-387-5116",t:null},
+  {n:"Silver Birch Kitchen + Lounge",a:"9225 SW ALLEN BLVD",c:"Portland",r:"beaverton",lat:45.47198,lon:-122.772312,p:"503-522-7499",t:2,x:"Reported closed March 2026; some directories still say temporarily closed for remodel",xk:"maybe"},
   {n:"The Old Market Pub & Brewery",a:"6959 SW MULTNOMAH RD",c:"Portland",r:"tigard",lat:45.46583,lon:-122.74825,p:"503-244-2337",t:4},
   {n:"Wan Q Restaurant & Lounge",a:"13520 NW CORNELL RD",c:"Portland",r:"beaverton",lat:45.526762,lon:-122.816084,p:"503-644-0003",t:3},
   {n:"West Union Sports Pub & Family Rest",a:"5340 NW 185TH",c:"Portland",r:"beaverton",lat:45.558219,lon:-122.867045,p:"503-629-5509",t:4},
@@ -312,18 +319,24 @@
       };
       var tables = function (v) {
         return v.t == null ? '' : v.t + (v.t === 1 ? ' table' : ' tables'); };
+      /* One source of truth for how each closure state is worded and coloured,
+         so the card, the popup and the pin can never disagree about it. */
+      var XLABEL = { maybe:'Closed?', temp:'Temporarily closed' };
+      var xLabel = function (v) { return XLABEL[v.xk] || XLABEL.maybe; };
+      var xPin   = function (v) { return !v.x ? '' : (v.xk === 'temp' ? ' paused' : ' dead'); };
 
       var filter = 'all', tfilter = 'all', selected = null, markers = [], cards = [];
 
       VENUES.forEach(function (v, i) {
         var m = L.marker([v.lat, v.lon], {
           icon: L.divIcon({ className:'pin-wrap',
-                            html:'<div class="pin' + (v.x ? ' dead' : '') + '"></div>',
+                            html:'<div class="pin' + xPin(v) + '"></div>',
                             iconSize:[13,13], iconAnchor:[6.5,6.5] }), title: v.n });
         var href = telHref(v.p);
         m.bindPopup('<b>' + esc(v.n) + '</b><span class="pc">' + esc(v.a) + '<br>' + esc(v.c) +
           (v.t == null ? '' : '<br>' + esc(tables(v))) +
-          (v.x ? '<br><b style="display:inline;color:#8a5a00">Closed?</b> ' + esc(v.x) : '') + '</span>' +
+          (v.x ? '<br><b style="display:inline;color:' + (v.xk === 'temp' ? '#274a80' : '#8a5a00') +
+                 '">' + esc(xLabel(v)) + '</b> ' + esc(v.x) : '') + '</span>' +
           (v.p ? (href ? '<a class="ptel" href="' + href + '">' + esc(v.p) + '</a>'
                        : '<span class="pc ptel">' + esc(v.p) + '</span>') : '') +
           '<a href="' + dirs(v) + '" target="_blank" rel="noopener">Directions</a>' +
@@ -397,11 +410,12 @@
         rows.forEach(function (x) {
           markers[x.i].addTo(map);
           var d=document.createElement('div');
-          d.className = 'v' + (x.v.x ? ' is-x' : '');
+          d.className = 'v' + (x.v.x ? ' is-x' : '') + (x.v.xk === 'temp' ? ' is-temp' : '');
           d.tabIndex=0; d.setAttribute('role','button');
           d.setAttribute('aria-current', selected===x.i ? 'true':'false');
           var href = telHref(x.v.p), foot = '';
-          if (x.v.x) foot += '<span class="xbadge" title="'+esc(x.v.x)+'">Closed?</span>';
+          if (x.v.x) foot += '<span class="xbadge' + (x.v.xk === 'temp' ? ' temp' : '') +
+                             '" title="'+esc(x.v.x)+'">'+esc(xLabel(x.v))+'</span>';
           if (x.v.t != null) foot += '<span class="tbadge">'+esc(tables(x.v))+'</span>';
           if (x.v.p) foot += href ? '<a href="'+href+'">'+esc(x.v.p)+'</a>'
                                   : '<span>'+esc(x.v.p)+'</span>';
