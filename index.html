@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>House Cue — SPM APA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      :root{
+        --spm-primary:#ea002a; --spm-accent:#0031a1;
+        --bg:#f5f5f5; --card:#fff; --border:#e1e1e1; --text:#1f1f1f; --muted:#6b7280;
+        --rail:340px; --hdr:52px; --chips:46px; --row:9px 13px; --nsize:.9rem; --msize:.775rem;
+      }
+      *{box-sizing:border-box;margin:0;padding:0}
+      html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+        font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px}
+      .app{display:flex;flex-direction:column;height:100%}
+
+      .bar{height:var(--hdr);flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;color:#fff;
+        background:linear-gradient(135deg,var(--spm-primary),var(--spm-accent));box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:900}
+      .bar h1{font-size:1rem;font-weight:900;white-space:nowrap}
+      .bar .sub{font-size:.82rem;opacity:.9;white-space:nowrap}
+      .bar .spacer{flex:1}
+      .bar .tally{font-size:.8rem;opacity:.92;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+      .chips{height:var(--chips);flex:none;display:flex;align-items:center;gap:7px;padding:0 12px;
+        background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;z-index:800}
+      .chips::-webkit-scrollbar{display:none}
+      .chip{flex:none;border:1px solid var(--border);background:#fafafa;border-radius:999px;
+        padding:6px 13px;font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap;
+        font-family:inherit;transition:background .12s,border-color .12s,color .12s}
+      .chip:hover{border-color:var(--spm-accent)}
+      .chip[aria-pressed="true"]{background:var(--spm-accent);border-color:var(--spm-accent);color:#fff}
+      .chip .n{opacity:.62;font-weight:500;margin-left:5px;font-variant-numeric:tabular-nums}
+      .chip[aria-pressed="true"] .n{opacity:.85}
+
+      .body{flex:1;display:flex;min-height:0;position:relative}
+      #map{flex:1;min-width:0;height:100%;background:#eaeaea}
+      .rail{width:var(--rail);flex:none;height:100%;overflow-y:auto;overscroll-behavior:contain;
+        background:var(--bg);border-right:1px solid var(--border)}
+
+      .v{padding:var(--row);border-bottom:1px solid #ececec;cursor:pointer;background:var(--card);
+        border-left:3px solid transparent;transition:background .1s,border-left-color .1s}
+      .v:hover{background:#f7f9fc}
+      .v:focus-visible{outline:2px solid var(--spm-accent);outline-offset:-2px}
+      .v[aria-current="true"]{background:#fff5f6;border-left-color:var(--spm-primary)}
+      .v-n{font-weight:700;font-size:var(--nsize);line-height:1.25}
+      .v-m{color:var(--muted);font-size:var(--msize);margin-top:2px;line-height:1.3}
+      .v-m b{color:var(--spm-primary);font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:.72rem}
+      .empty{padding:26px 16px;text-align:center;color:var(--muted);font-size:.85rem}
+
+      .pin{width:13px;height:13px;border-radius:50%;background:var(--spm-accent);
+        border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);transition:transform .12s}
+      .pin-wrap:hover .pin{transform:scale(1.35)}
+      .pin.sel{width:24px;height:24px;background:var(--spm-primary);border-width:3px;
+        box-shadow:0 2px 10px rgba(234,0,42,.7)}
+
+      .legend{position:absolute;z-index:600;right:10px;bottom:10px;background:rgba(255,255,255,.95);
+        border:1px solid var(--border);border-radius:9px;padding:7px 9px;box-shadow:0 2px 8px rgba(0,0,0,.16);
+        font-size:.73rem;line-height:1.5}
+      .legend-row{display:flex;align-items:center;gap:6px;white-space:nowrap}
+      .legend-sw{width:12px;height:12px;border-radius:3px;flex:none}
+      .leaflet-popup-content{font-size:.88rem;line-height:1.4;margin:9px 12px}
+      .leaflet-popup-content b{display:block;font-size:.95rem;margin-bottom:1px}
+      .leaflet-popup-content .pc{color:var(--muted)}
+      .leaflet-popup-content a{display:inline-block;margin-top:6px;margin-right:9px;color:var(--spm-accent);
+        text-decoration:none;font-weight:600;font-size:.83rem}
+      .grab{display:none}
+
+      /* ── DEVICE TIERS ──────────────────────────────────────────────────────
+         Mirrors the house detection used by CalendarViewer: screen.width with a
+         pointer check, applying body.mobile / body.tablet / body.desktop. Media
+         queries alone cannot tell a 1024 px tablet from a 1024 px laptop, and
+         the two want different touch targets. Same scheme, same class names -
+         one convention across both public pages, not two.
+
+         mobile  — full-bleed map, list as a bottom sheet, 44 px touch rows
+         tablet  — rail, but wider rows and bigger chips for fingers
+         desktop — rail, compact rows, hover affordances                        */
+
+      body.mobile{--hdr:48px;--chips:52px;--row:12px 14px;--nsize:.95rem;--msize:.82rem}
+      body.mobile .body{display:block}
+      body.mobile #map{position:absolute;inset:0;height:100%}
+      body.mobile .rail{position:absolute;left:0;right:0;bottom:0;width:auto;height:64%;
+        border-right:none;border-top:1px solid var(--border);border-radius:16px 16px 0 0;
+        box-shadow:0 -3px 18px rgba(0,0,0,.22);z-index:700;background:var(--card);
+        transition:transform .24s cubic-bezier(.4,0,.2,1)}
+      body.mobile .rail.peek{transform:translateY(calc(100% - 60px))}
+      body.mobile .grab{display:block;position:sticky;top:0;background:var(--card);padding:8px 0 6px;
+        border-bottom:1px solid #ececec;z-index:2;cursor:pointer}
+      body.mobile .grab::before{content:"";display:block;width:40px;height:4px;border-radius:2px;
+        background:#cbd0d8;margin:0 auto 6px}
+      body.mobile .grab-l{text-align:center;font-size:.8rem;color:var(--muted);font-weight:600}
+      body.mobile .chip{padding:9px 15px;font-size:.86rem}
+      body.mobile .legend{bottom:auto;top:10px;right:10px;font-size:.7rem}
+      body.mobile .v:hover{background:var(--card)}   /* no hover state on touch */
+
+      body.tablet{--rail:300px;--hdr:54px;--chips:54px;--row:12px 14px;--nsize:.94rem;--msize:.8rem}
+      body.tablet .chip{padding:9px 15px;font-size:.85rem}
+      body.tablet .v:hover{background:var(--card)}
+      body.tablet .pin{width:15px;height:15px}       /* fatter finger target */
+      body.tablet .pin.sel{width:26px;height:26px}
+
+      body.desktop{--rail:340px}
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="bar">
+        <h1>House Cue</h1>
+        <span class="sub">Where we play</span>
+        <span class="spacer"></span>
+        <span class="tally" id="tally"></span>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="body">
+        <div class="rail" id="rail">
+          <div class="grab" id="grab"><div class="grab-l" id="grabL">Show list</div></div>
+          <div id="list"></div>
+        </div>
+        <div id="map"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      /* Device tier FIRST: the CSS custom properties above depend on the body
+         class, and Leaflet reads element sizes at init. */
+      /* Same tiers and class names as CalendarViewer, with two deliberate
+         differences, both of which that page does not need because it runs
+         effectively full-screen:
+
+         1. screen.width is the DISPLAY, not the window. A desktop user with a
+            half-width browser window would get the desktop rail crammed into
+            600 px. We take the smaller of screen and viewport, so the layout
+            follows the space actually available.
+         2. screen.width can be 0 in embedded and headless contexts — measured,
+            not theorised — and 0 < 768 silently means "mobile". Falling back to
+            innerWidth stops a desktop being served a phone layout.
+
+         Touch detection is unchanged: a large tablet still gets finger-sized
+         targets even though it is wide. */
+      function tierOf() {
+        var sw = screen.width || 0;
+        var vw = window.innerWidth || sw || 1024;
+        var w  = sw > 0 ? Math.min(sw, vw) : vw;
+        var hasTouch = navigator.maxTouchPoints > 0;
+        if (w < 768) return 'mobile';
+        if (w < 1200) return 'tablet';
+        return (hasTouch && !window.matchMedia('(pointer: fine)').matches) ? 'tablet' : 'desktop';
+      }
+      var TIER = tierOf();
+      document.body.classList.add(TIER);
+
+      var AREAS = [
+  {k:"milwaukie",label:"Milwaukie"},
+  {k:"oregoncity",label:"Oregon City"},
+  {k:"beaverton",label:"Beaverton"},
+  {k:"tigard",label:"Tigard"},
+  {k:"hillsboro",label:"Hillsboro & West"}
+      ];
+      var VENUES = [
+  {n:"89 Sports Bar and Billiards",a:"18641 SW Tualatin Valley Hwy",c:"Aloha",r:"beaverton",lat:45.494745,lon:-122.868815},
+  {n:"Dr Feelgoods Pub",a:"20419 SW Tualatin Valley Hwy",c:"Aloha",r:"beaverton",lat:45.497001,lon:-122.887021},
+  {n:"The Aloha Station",a:"3765 SW 185TH",c:"Aloha",r:"beaverton",lat:45.492657,lon:-122.867533},
+  {n:"Banks Billiards",a:"13711 NW MAIN ST",c:"Banks",r:"hillsboro",lat:45.619111,lon:-123.114513},
+  {n:"Ag Sports Bar",a:"14342 SW ALLEN BLVD",c:"Beaverton",r:"beaverton",lat:45.474954,lon:-122.824225},
+  {n:"Big Al's",a:"14950 SW BARROWS RD",c:"Beaverton",r:"beaverton",lat:45.428849,lon:-122.829621},
+  {n:"Big Red's Bar & Grill",a:"11485 SW SCHOLLS FERRY RD",c:"Beaverton",r:"beaverton",lat:45.445936,lon:-122.794252},
+  {n:"Brickyard Tavern",a:"13095 SW CANYON RD",c:"Beaverton",r:"beaverton",lat:45.488492,lon:-122.811885},
+  {n:"Ringo's",a:"3655 SW HALL BLVD",c:"Beaverton",r:"beaverton",lat:45.49337,lon:-122.808826},
+  {n:"The Westgate Bourbon Bar & Taphouse",a:"3800 SW CEDAR HILLS BLVD",c:"Beaverton",r:"beaverton",lat:45.491752,lon:-122.810028},
+  {n:"Backroads Pub & Grub",a:"13230 SE ORIENT DR",c:"Boring",r:"milwaukie",lat:45.427674,lon:-122.32085},
+  {n:"Timber Pub and Grub",a:"28052 SE HWY 212",c:"Boring",r:"milwaukie",lat:45.429895,lon:-122.374529},
+  {n:"Mike's Place",a:"404 NW 1ST AVE",c:"Canby",r:"oregoncity",lat:45.261596,lon:-122.696882},
+  {n:"Watkins Park Pub",a:"16740 SE 82ND DR",c:"Clackamas",r:"milwaukie",lat:45.40125,lon:-122.56902},
+  {n:"Jungle Room",a:"1034 BASELINE ST",c:"Cornelius",r:"hillsboro",lat:45.520135,lon:-123.059045},
+  {n:"Leo's Lair",a:"1098 E BASELINE ST",c:"Cornelius",r:"hillsboro",lat:45.520141,lon:-123.058345},
+  {n:"Nick's Door Sports Bar",a:"458 SW 2ND",c:"Estacada",r:"oregoncity",lat:45.288555,lon:-122.339293},
+  {n:"Circle Inn Tavern",a:"3007 PACIFIC AVE",c:"Forest Grove",r:"hillsboro",lat:45.520405,lon:-123.093755},
+  {n:"Diamond Palace Restaurant",a:"1921 MAIN ST",c:"Forest Grove",r:"hillsboro",lat:45.519025,lon:-123.111773},
+  {n:"Mcmenamin's Grand Lodge",a:"3505 PACIFIC AVE",c:"Forest Grove",r:"hillsboro",lat:45.521752,lon:-123.085682},
+  {n:"Vogie's Bar",a:"464 PORTLAND AVE",c:"Gladstone",r:"oregoncity",lat:45.379971,lon:-122.594508},
+  {n:"Jay's Bar & Grill",a:"11595 SE 82ND",c:"Happy Valley",r:"milwaukie",lat:45.439154,lon:-122.579477},
+  {n:"The Heritage Pub",a:"10601 SE 82ND AVE",c:"Happy Valley",r:"milwaukie",lat:45.446035,lon:-122.579194},
+  {n:"Hillsboro Bar & Grill",a:"359 E MAIN ST",c:"Hillsboro",r:"hillsboro",lat:45.522776,lon:-122.984925},
+  {n:"Maguffy's Pub II",a:"2401 NE CORNELL RD",c:"Hillsboro",r:"hillsboro",lat:45.531323,lon:-122.95872},
+  {n:"O'Brien's Pub",a:"2020 NE CORNELL RD",c:"Hillsboro",r:"hillsboro",lat:45.530129,lon:-122.961464},
+  {n:"Player's Box",a:"1823 SE TUALATIN VALLEY HWY",c:"Hillsboro",r:"hillsboro",lat:45.50816,lon:-122.963998},
+  {n:"Topgolf",a:"5505 NE HUFFMAN ST",c:"Hillsboro",r:"hillsboro",lat:45.559861,lon:-122.924092},
+  {n:"Gemini Bar & Grill",a:"456 N STATE ST",c:"Lake Oswego",r:"milwaukie",lat:45.420043,lon:-122.663129},
+  {n:"Hanko's Sports Bar & Grill",a:"4 MONROE PKWY",c:"Lake Oswego",r:"tigard",lat:45.431834,lon:-122.703402},
+  {n:"Jo's Saloon & Eatery",a:"4400 SE INTERNATIONAL Way",c:"Milwaukie",r:"milwaukie",lat:45.435865,lon:-122.617725},
+  {n:"River Roadhouse",a:"11921 SE 22ND",c:"Milwaukie",r:"milwaukie",lat:45.438172,lon:-122.641178},
+  {n:"The Grove Restaurant & Bar",a:"15300 SE MCLOUGHLIN BLVD",c:"Milwaukie",r:"milwaukie",lat:45.41207,lon:-122.62877},
+  {n:"The Old Dolphin",a:"17180 SE McLoughlin Blvd",c:"Milwaukie",r:"milwaukie",lat:45.39974,lon:-122.61824},
+  {n:"Wichita Pub",a:"11481 SE HWY 212",c:"Milwaukie",r:"milwaukie",lat:45.408314,lon:-122.544875},
+  {n:"Sundowner",a:"115 W MAIN ST",c:"Molalla",r:"oregoncity",lat:45.147661,lon:-122.577376},
+  {n:"Wildhorse Bar & Grill",a:"110 S MOLALLA AVE",c:"Molalla",r:"oregoncity",lat:45.14712,lon:-122.577438},
+  {n:"The Old Hitchin' Post Restaurant",a:"10565 NW GLENCOE RD",c:"North Plains",r:"hillsboro",lat:45.596817,lon:-122.99399},
+  {n:"Milwaukie Elk's Lodge #142",a:"13121 SE MCLOUGHLIN BLVD",c:"Oak Grove",r:"milwaukie",lat:45.428476,lon:-122.634509},
+  {n:"Mcanulty & Barry's",a:"820 MAIN ST",c:"Oregon City",r:"oregoncity",lat:45.35861,lon:-122.606635},
+  {n:"Midway Historic Public House",a:"1003 7TH ST",c:"Oregon City",r:"oregoncity",lat:45.354627,lon:-122.601287},
+  {n:"Rodder's Grub & Pub",a:"19197 S Molalla Ave",c:"Oregon City",r:"oregoncity",lat:45.328913,lon:-122.584473},
+  {n:"The Coney Island Tavern",a:"1413 WASHINGTON ST",c:"Oregon City",r:"oregoncity",lat:45.362013,lon:-122.599676},
+  {n:"The Verdict Bar & Grill and Caulfield House",a:"110 8TH ST",c:"Oregon City",r:"oregoncity",lat:45.358504,lon:-122.607822},
+  {n:"Wichita Bar & Grill",a:"19140 S Molalla Ave",c:"Oregon City",r:"oregoncity",lat:45.329521,lon:-122.584782},
+  {n:"Dublin Pub",a:"6821 SW Beaverton Hillsdale Hwy",c:"Portland",r:"beaverton",lat:45.486728,lon:-122.747425},
+  {n:"Garden Home Dugout",a:"7380 SW GARDEN HOME RD",c:"Portland",r:"tigard",lat:45.465568,lon:-122.75184},
+  {n:"Greek Village Tavern",a:"301 NW MURRAY BLVD",c:"Portland",r:"beaverton",lat:45.520966,lon:-122.816588},
+  {n:"Leo's Lair #2",a:"13587 NW CORNELL RD",c:"Portland",r:"beaverton",lat:45.528523,lon:-122.816054},
+  {n:"Mai Wah Restaurant",a:"18088 SE MCLOUGHLIN BLVD",c:"Portland",r:"milwaukie",lat:45.39174,lon:-122.61312},
+  {n:"O'Aces",a:"18080 SE McLoughlin Blvd",c:"Portland",r:"milwaukie",lat:45.392412,lon:-122.612951},
+  {n:"Silver Birch Kitchen + Lounge",a:"9225 SW ALLEN BLVD",c:"Portland",r:"beaverton",lat:45.47198,lon:-122.772312},
+  {n:"The Old Market Pub & Brewery",a:"6959 SW MULTNOMAH RD",c:"Portland",r:"tigard",lat:45.46583,lon:-122.74825},
+  {n:"Wan Q Restaurant & Lounge",a:"13520 NW CORNELL RD",c:"Portland",r:"beaverton",lat:45.526762,lon:-122.816084},
+  {n:"West Union Sports Pub & Family Rest",a:"5340 NW 185TH",c:"Portland",r:"beaverton",lat:45.558219,lon:-122.867045},
+  {n:"Donny's Gateway Pub",a:"39100 PIONEER BLVD",c:"Sandy",r:"oregoncity",lat:45.396118,lon:-122.260615},
+  {n:"No Place Saloon",a:"38725 PROCTOR BLVD",c:"Sandy",r:"oregoncity",lat:45.397505,lon:-122.264979},
+  {n:"Last Call",a:"16450 SW LANGER DR",c:"Sherwood",r:"tigard",lat:45.365982,lon:-122.845367},
+  {n:"Bull Mountain Bar & Grill",a:"13727 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.420603,lon:-122.786485},
+  {n:"Canton Phoenix",a:"14455 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.4158,lon:-122.79147},
+  {n:"Home Turf Sportsbar & Grill",a:"13500 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.421441,lon:-122.782121},
+  {n:"Hotpot Palace",a:"11530 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.44061,lon:-122.74867},
+  {n:"Mcmenamin's Greenway Pub",a:"12272 SW SCHOLLS FERRY RD",c:"Tigard",r:"tigard",lat:45.443121,lon:-122.803287},
+  {n:"The Aura Night Club & Lounge",a:"10935 SW 68TH PKWY",c:"Tigard",r:"tigard",lat:45.440954,lon:-122.748027},
+  {n:"The Spot Sports Bar & Grill",a:"8705 SW LOCUST ST",c:"Tigard",r:"tigard",lat:45.446828,lon:-122.766619},
+  {n:"Bushwhackers",a:"8200 SW TONKA",c:"Tualatin",r:"tigard",lat:45.379913,lon:-122.760926},
+  {n:"Pub 26",a:"67351 E HWY 26",c:"Welches",r:"oregoncity",lat:45.351191,lon:-121.972283}
+      ];
+      var COUNTIES = [
+  {name:"Clackamas County",color:"#0f766e",geo:{"type":"Polygon","coordinates":[[[-122.8679985,45.259634],[-122.8497598,45.2596846],[-122.8345733,45.2740535],[-122.7849085,45.2740689],[-122.7849313,45.2595515],[-122.7388101,45.2595895],[-122.7520034,45.2429343],[-122.7477194,45.2359637],[-122.7503813,45.2322735],[-122.7453751,45.2327738],[-122.7526295,45.2290509],[-122.746963,45.22589],[-122.7454252,45.2160971],[-122.7478155,45.2111543],[-122.7591035,45.2083324],[-122.7556425,45.207433],[-122.7590817,45.2009172],[-122.7531185,45.2016209],[-122.7498172,45.1950838],[-122.7548778,45.1966063],[-122.7528385,45.1917561],[-122.7600846,45.1945361],[-122.7531394,45.1871765],[-122.7605777,45.182947],[-122.7519526,45.1819985],[-122.7663889,45.1634448],[-122.7749167,45.1623905],[-122.7700563,45.1592187],[-122.7884224,45.1299269],[-122.7758968,45.1233881],[-122.7758393,45.1187217],[-122.7499234,45.1077778],[-122.7436003,45.0964385],[-122.7197909,45.0798125],[-122.7172139,45.0699589],[-122.7050762,45.0589936],[-122.6786834,45.0463962],[-122.6697689,45.0466317],[-122.6490069,45.0323749],[-122.6342146,45.0338651],[-122.5960063,45.0200149],[-122.5947452,44.9909905],[-122.5683522,44.9831899],[-122.5596619,44.9650957],[-122.5352811,44.9365622],[-122.5203413,44.9342351],[-122.5048901,44.9181617],[-122.486141,44.9226082],[-122.4586891,44.9151412],[-122.4372815,44.9029769],[-122.3993076,44.9038973],[-122.3932024,44.8918033],[-122.4010155,44.8857092],[-121.7342967,44.8857794],[-121.7167958,44.8982912],[-121.7144036,44.9061771],[-121.7288997,44.9048184],[-121.7471574,44.9145268],[-121.7460885,44.9240663],[-121.763826,44.9418862],[-121.779952,44.9351375],[-121.7959316,44.9364328],[-121.7923893,44.9591075],[-121.8034333,44.9773722],[-121.8051664,45.0117781],[-121.7946339,45.0171943],[-121.7813291,45.0155944],[-121.7818887,45.0340814],[-121.7779379,45.0377749],[-121.7681938,45.039866],[-121.7440491,45.0338378],[-121.7184414,45.0372923],[-121.7213909,45.0467954],[-121.6891495,45.0668096],[-121.6585587,45.0663727],[-121.6597762,45.0794938],[-121.6515877,45.0878501],[-121.6657981,45.1198839],[-121.6853171,45.1236664],[-121.694862,45.1171687],[-121.7080156,45.1337199],[-121.710761,45.1507194],[-121.7252531,45.1591639],[-121.7485455,45.190694],[-121.7476085,45.2055455],[-121.7141862,45.2116098],[-121.7019741,45.230042],[-121.68262,45.2285419],[-121.686326,45.2341116],[-121.6808667,45.2505944],[-121.6964024,45.2553898],[-121.6969158,45.2605307],[-121.6792274,45.2965227],[-121.7027192,45.3296013],[-121.7046274,45.3405742],[-121.700781,45.3685006],[-121.6959867,45.3734497],[-121.7260899,45.394765],[-121.7763838,45.4027668],[-121.792835,45.4152434],[-121.7959571,45.4267594],[-121.8069565,45.435223],[-121.8067822,45.4541407],[-121.8196686,45.4616631],[-122.6415818,45.4614834],[-122.6610971,45.4578017],[-122.6454981,45.4426639],[-122.6510862,45.4365523],[-122.6489078,45.4326318],[-122.743706,45.4332855],[-122.7437159,45.3320679],[-122.8054669,45.3317666],[-122.8055494,45.346283],[-122.8464327,45.3461127],[-122.8464886,45.3171967],[-122.8679025,45.3173456],[-122.8679985,45.259634]]]}},
+  {name:"Washington County",color:"#b45309",geo:{"type":"Polygon","coordinates":[[[-123.4860593,45.4332318],[-123.1351973,45.4335224],[-123.1351102,45.4189363],[-123.1146749,45.4189553],[-123.1147346,45.4042575],[-123.0321617,45.4048017],[-123.0321604,45.3904755],[-123.0115395,45.3908801],[-123.0115782,45.3764933],[-122.9913915,45.3754269],[-122.991396,45.3611063],[-122.9703145,45.3607624],[-122.9702143,45.3464587],[-122.9087969,45.3461852],[-122.9089173,45.317463],[-122.8464886,45.3171967],[-122.8464327,45.3461127],[-122.8055494,45.346283],[-122.8054669,45.3317666],[-122.7437159,45.3320679],[-122.7438607,45.5195099],[-122.7644857,45.5195099],[-122.7644116,45.5338588],[-122.7848624,45.5339965],[-122.7847634,45.548401],[-122.7950889,45.5484268],[-122.7959071,45.5557174],[-122.8054193,45.5555867],[-122.8054809,45.5629107],[-122.8261894,45.5630401],[-122.8263411,45.5775212],[-122.8469821,45.577515],[-122.8468482,45.591836],[-122.8675867,45.5918784],[-122.8674956,45.6062247],[-122.8879623,45.6063512],[-122.8878342,45.6204618],[-122.9089785,45.6207625],[-122.9090836,45.6352238],[-122.9290827,45.635312],[-122.9288985,45.7356863],[-122.9903761,45.7364472],[-122.9903365,45.7508239],[-123.0317766,45.7513622],[-123.0308922,45.7791747],[-123.3610461,45.7796454],[-123.3610795,45.708694],[-123.4846699,45.7091376],[-123.485109,45.6792679],[-123.4643818,45.6792836],[-123.4640969,45.6651332],[-123.4437614,45.6651248],[-123.4438466,45.650674],[-123.4230055,45.6506439],[-123.4232577,45.6361788],[-123.3802173,45.6357543],[-123.3806269,45.621983],[-123.3405115,45.622208],[-123.3403216,45.6074571],[-123.2994335,45.6072517],[-123.2992703,45.5930203],[-123.3201968,45.592976],[-123.3199977,45.5786915],[-123.3611036,45.5787813],[-123.3611399,45.549886],[-123.4019948,45.5500697],[-123.4021509,45.5355772],[-123.4219173,45.535325],[-123.4219573,45.5213846],[-123.4427073,45.5210563],[-123.4410961,45.4912706],[-123.4611888,45.4915561],[-123.4638711,45.4472955],[-123.4854746,45.4471396],[-123.4860593,45.4332318]]]}}
+      ];
+
+      var map = L.map('map', { scrollWheelZoom: TIER === 'desktop', zoomControl: true });
+      /* Carto Positron rather than standard OSM. The county fills need to read
+         as data, and standard OSM tiles are already saturated with green parks,
+         yellow arterials and pink motorways - a 10% overlay on top of that is
+         invisible, which is exactly the complaint. A muted basemap lets the
+         shading carry meaning instead of competing. */
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19, subdomains: 'abcd',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      }).addTo(map);
+
+      function inRing(lon,lat,r){var i,j,ins=false;for(i=0,j=r.length-1;i<r.length;j=i++){
+        var xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1];
+        if((yi>lat)!==(yj>lat)&&lon<((xj-xi)*(lat-yi))/(yj-yi)+xi)ins=!ins;}return ins;}
+      function inCounty(lon,lat,g){var p,k,polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;
+        for(p=0;p<polys.length;p++){if(!inRing(lon,lat,polys[p][0]))continue;var hole=false;
+        for(k=1;k<polys[p].length;k++)if(inRing(lon,lat,polys[p][k]))hole=true;if(!hole)return true;}return false;}
+
+      /* Heavier than before: 22% fill and a 3 px stroke. On a muted basemap the
+         counties now read at a glance without burying the pins, which stay the
+         most saturated thing on the map. */
+      COUNTIES.forEach(function (c) {
+        L.geoJSON(c.geo, { interactive:false,
+          style:{color:c.color,weight:3,opacity:.9,fillColor:c.color,fillOpacity:.22} }).addTo(map);
+      });
+      document.getElementById('legend').innerHTML = COUNTIES.map(function(c){
+        return '<div class="legend-row"><span class="legend-sw" style="background:'+c.color+
+          '55;border:2px solid '+c.color+'"></span><span>'+c.name+'</span></div>';}).join('');
+
+      var esc = function (s) { return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+      var dirs = function (v) { return 'https://www.google.com/maps/dir/?api=1&destination=' +
+        encodeURIComponent(v.a + ', ' + v.c + ', OR'); };
+      var gmap = function (v) { return 'https://www.google.com/maps/search/?api=1&query=' +
+        encodeURIComponent(v.n + ', ' + v.a + ', ' + v.c + ', OR'); };
+
+      var filter = 'all', selected = null, markers = [], cards = [];
+
+      VENUES.forEach(function (v, i) {
+        var m = L.marker([v.lat, v.lon], {
+          icon: L.divIcon({ className:'pin-wrap', html:'<div class="pin"></div>',
+                            iconSize:[13,13], iconAnchor:[6.5,6.5] }), title: v.n });
+        m.bindPopup('<b>' + esc(v.n) + '</b><span class="pc">' + esc(v.a) + '<br>' + esc(v.c) +
+          '</span><a href="' + dirs(v) + '" target="_blank" rel="noopener">Directions</a>' +
+          '<a href="' + gmap(v) + '" target="_blank" rel="noopener">Google Maps</a>',
+          { autoPan:false });
+        m.on('click', function () { select(i, false); });
+        markers.push(m);
+      });
+
+      /* Only mobile needs an offset: there the sheet overlays a full-bleed map.
+         On tablet and desktop the rail is a SIBLING of the map, so Leaflet's
+         viewport already excludes it and any offset would push the pin off
+         centre - which it did, by exactly half the rail width, until measured. */
+      function centerOn(latlng, zoom) {
+        var z = zoom == null ? Math.max(map.getZoom(), 15) : zoom;
+        if (TIER !== 'mobile') { map.setView(latlng, z, { animate:true }); return; }
+        var sheet = document.getElementById('rail').getBoundingClientRect();
+        var covered = Math.max(0, window.innerHeight - sheet.top);
+        var pt = map.project(latlng, z).add([0, covered / 2]);
+        map.setView(map.unproject(pt, z), z, { animate:true });
+      }
+
+      function select(i, fromCard) {
+        if (selected !== null && markers[selected]) {
+          var pe = markers[selected].getElement();
+          if (pe) pe.querySelector('.pin').classList.remove('sel');
+          if (cards[selected]) cards[selected].setAttribute('aria-current','false');
+        }
+        selected = i;
+        var m = markers[i], el = m.getElement();
+        if (el) el.querySelector('.pin').classList.add('sel');
+        if (cards[i]) {
+          cards[i].setAttribute('aria-current','true');
+          if (!fromCard) cards[i].scrollIntoView({ block:'nearest', behavior:'smooth' });
+        }
+        m.openPopup();
+        centerOn(m.getLatLng());
+      }
+
+      function visible(){ return VENUES.map(function(v,i){return {v:v,i:i};})
+        .filter(function(x){ return filter==='all' || x.v.r===filter; }); }
+
+      function render() {
+        var rows = visible(), list = document.getElementById('list');
+        list.innerHTML=''; cards=[];
+        markers.forEach(function(m){ map.removeLayer(m); });
+        if (!rows.length) { list.innerHTML='<div class="empty">No venues in this area.</div>'; return; }
+        rows.forEach(function (x) {
+          markers[x.i].addTo(map);
+          var d=document.createElement('div');
+          d.className='v'; d.tabIndex=0; d.setAttribute('role','button');
+          d.setAttribute('aria-current', selected===x.i ? 'true':'false');
+          d.innerHTML='<div class="v-n">'+esc(x.v.n)+'</div>'+
+                      '<div class="v-m"><b>'+esc(x.v.c)+'</b> · '+esc(x.v.a)+'</div>';
+          d.addEventListener('click', function(){ select(x.i, true); });
+          d.addEventListener('keydown', function(e){
+            if(e.key==='Enter'||e.key===' '){ e.preventDefault(); select(x.i, true); } });
+          list.appendChild(d); cards[x.i]=d;
+        });
+        document.getElementById('tally').textContent = rows.length + (rows.length===1?' venue':' venues');
+        var pad = TIER==='mobile' ? [30,30] : [40,40];
+        map.fitBounds(rows.map(function(x){ return [x.v.lat,x.v.lon]; }),
+          { paddingTopLeft:pad, paddingBottomRight: TIER==='mobile' ? [30,140] : pad, maxZoom:14 });
+      }
+
+      var chipDefs=[{k:'all',label:'All areas'}].concat(AREAS);
+      document.getElementById('chips').innerHTML = chipDefs.map(function(c){
+        var n = c.k==='all' ? VENUES.length : VENUES.filter(function(v){return v.r===c.k;}).length;
+        return '<button type="button" class="chip" data-k="'+c.k+'" aria-pressed="'+(c.k==='all')+'">'+
+          esc(c.label)+'<span class="n">'+n+'</span></button>'; }).join('');
+      document.getElementById('chips').addEventListener('click', function(e){
+        var b=e.target.closest('.chip'); if(!b) return;
+        filter=b.getAttribute('data-k');
+        [].forEach.call(this.querySelectorAll('.chip'), function(c){
+          c.setAttribute('aria-pressed', String(c===b)); });
+        selected=null; render();
+      });
+
+      var rail=document.getElementById('rail'), grab=document.getElementById('grab');
+      function sheet(open){ rail.classList.toggle('peek', !open);
+        document.getElementById('grabL').textContent = open ? 'Hide list' : 'Show list'; }
+      grab.addEventListener('click', function(){ sheet(rail.classList.contains('peek')); });
+      if (TIER === 'mobile') { sheet(false); map.on('click', function(){ sheet(false); }); }
+
+      render();
+
+      /* A resized window crossing a tier boundary must re-lay-out. Debounced,
+         and only acts on an actual tier CHANGE so ordinary resizing does not
+         rebuild 67 rows on every frame. */
+      var rzT;
+      window.addEventListener('resize', function () {
+        clearTimeout(rzT);
+        rzT = setTimeout(function () {
+          var t = tierOf();
+          if (t === TIER) { map.invalidateSize(); return; }
+          document.body.classList.remove('mobile', 'tablet', 'desktop');
+          document.body.classList.add(t);
+          TIER = t;
+          if (TIER === 'mobile') sheet(false); else rail.classList.remove('peek');
+          map.invalidateSize();
+          render();
+        }, 180);
+      });
+    </script>
+  </body>
+</html>
