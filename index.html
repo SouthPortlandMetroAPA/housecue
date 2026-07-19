@@ -65,6 +65,14 @@
       .v-f a:hover{text-decoration:underline}
       .tbadge{flex:none;background:#eef1f8;border:1px solid #dbe1ee;color:#33406b;border-radius:5px;
         padding:1px 6px;font-size:.7rem;font-weight:700;letter-spacing:.02em}
+      /* "Closed?" - reported closed by one source, NOT confirmed by the league.
+         Amber, not red, and it keeps its question mark: the honest state is
+         doubt, and a player who calls the number is how the doubt gets settled.
+         Deleting the pin instead would have destroyed that chance. */
+      .xbadge{flex:none;background:#fff3d6;border:1px solid #e8c877;color:#8a5a00;border-radius:5px;
+        padding:1px 6px;font-size:.7rem;font-weight:700;letter-spacing:.02em}
+      .v.is-x .v-n{color:var(--muted)}
+      .v.is-x .v-m b{color:var(--muted)}
       body.mobile .v-f a,body.tablet .v-f a{padding:3px 0}   /* taller tap target */
       .empty{padding:26px 16px;text-align:center;color:var(--muted);font-size:.85rem}
 
@@ -73,6 +81,7 @@
       .pin-wrap:hover .pin{transform:scale(1.35)}
       .pin.sel{width:24px;height:24px;background:var(--spm-primary);border-width:3px;
         box-shadow:0 2px 10px rgba(234,0,42,.7)}
+      .pin.dead{background:#adb3bd}   /* matches the "Closed?" badge, on the map */
 
       .legend{position:absolute;z-index:600;right:10px;bottom:10px;background:rgba(255,255,255,.95);
         border:1px solid var(--border);border-radius:9px;padding:7px 9px;box-shadow:0 2px 8px rgba(0,0,0,.16);
@@ -185,34 +194,34 @@
       ];
       var VENUES = [
   {n:"89 Sports Bar and Billiards",a:"18641 SW Tualatin Valley Hwy",c:"Aloha",r:"beaverton",lat:45.494745,lon:-122.868815,p:"503-848-8888",t:12},
-  {n:"Dr Feelgoods Pub",a:"20419 SW Tualatin Valley Hwy",c:"Aloha",r:"beaverton",lat:45.497001,lon:-122.887021,p:"503-524-5539",t:3},
+  {n:"Dr Feelgoods Pub",a:"20419 SW Tualatin Valley Hwy",c:"Aloha",r:"beaverton",lat:45.497001,lon:-122.887021,p:"503-591-9663",t:3},
   {n:"The Aloha Station",a:"3765 SW 185TH",c:"Aloha",r:"beaverton",lat:45.492657,lon:-122.867533,p:"503-649-7666",t:4},
   {n:"Banks Billiards",a:"13711 NW MAIN ST",c:"Banks",r:"hillsboro",lat:45.619111,lon:-123.114513,p:"503-324-9521",t:2},
-  {n:"Ag Sports Bar",a:"14342 SW ALLEN BLVD",c:"Beaverton",r:"beaverton",lat:45.474954,lon:-122.824225,p:"503-590-9769",t:2},
+  {n:"Ag Sports Bar",a:"14342 SW ALLEN BLVD",c:"Beaverton",r:"beaverton",lat:45.474954,lon:-122.824225,p:"503-646-4611",t:2},
   {n:"Big Al's",a:"14950 SW BARROWS RD",c:"Beaverton",r:"beaverton",lat:45.428849,lon:-122.829621,p:"503-748-6118",t:2},
-  {n:"Big Red's Bar & Grill",a:"11485 SW SCHOLLS FERRY RD",c:"Beaverton",r:"beaverton",lat:45.445936,lon:-122.794252,p:"503-968-2612",t:2},
-  {n:"Brickyard Tavern",a:"13095 SW CANYON RD",c:"Beaverton",r:"beaverton",lat:45.488492,lon:-122.811885,p:"503-539-7124",t:2},
-  {n:"Ringo's",a:"3655 SW HALL BLVD",c:"Beaverton",r:"beaverton",lat:45.49337,lon:-122.808826,p:"503-546-0498",t:4},
-  {n:"The Westgate Bourbon Bar & Taphouse",a:"3800 SW CEDAR HILLS BLVD",c:"Beaverton",r:"beaverton",lat:45.491752,lon:-122.810028,p:"503-929-2981",t:3},
+  {n:"Big Red's Bar & Grill",a:"11485 SW SCHOLLS FERRY RD",c:"Beaverton",r:"beaverton",lat:45.445936,lon:-122.794252,p:"503-579-4292",t:2},
+  {n:"Brickyard Tavern",a:"13095 SW CANYON RD",c:"Beaverton",r:"beaverton",lat:45.488492,lon:-122.811885,p:"503-718-7033",t:2},
+  {n:"Ringo's",a:"3655 SW HALL BLVD",c:"Beaverton",r:"beaverton",lat:45.49337,lon:-122.808826,p:"503-644-7847",t:4},
+  {n:"The Westgate Bourbon Bar & Taphouse",a:"3800 SW CEDAR HILLS BLVD",c:"Beaverton",r:"beaverton",lat:45.491752,lon:-122.810028,p:"503-746-7178",t:3},
   {n:"Backroads Pub & Grub",a:"13230 SE ORIENT DR",c:"Boring",r:"milwaukie",lat:45.427674,lon:-122.32085,p:"503-663-5777",t:2},
   {n:"Timber Pub and Grub",a:"28052 SE HWY 212",c:"Boring",r:"milwaukie",lat:45.429895,lon:-122.374529,p:"503-663-6092",t:2},
-  {n:"Mike's Place",a:"404 NW 1ST AVE",c:"Canby",r:"oregoncity",lat:45.261596,lon:-122.696882,p:"503-236-9343",t:2},
+  {n:"Mike's Place",a:"404 NW 1ST AVE",c:"Canby",r:"oregoncity",lat:45.261596,lon:-122.696882,p:"503-266-9343",t:2},
   {n:"Watkins Park Pub",a:"16740 SE 82ND DR",c:"Clackamas",r:"milwaukie",lat:45.40125,lon:-122.56902,p:"503-655-4117",t:3},
-  {n:"Jungle Room",a:"1034 BASELINE ST",c:"Cornelius",r:"hillsboro",lat:45.520135,lon:-123.059045,p:"503-357-2506",t:2},
+  {n:"Leo's Lair Pub",a:"1034 BASELINE ST",c:"Cornelius",r:"hillsboro",lat:45.520135,lon:-123.059045,p:"503-357-2506",t:2},
   {n:"Leo's Lair",a:"1098 E BASELINE ST",c:"Cornelius",r:"hillsboro",lat:45.520141,lon:-123.058345,p:"503-359-5388",t:2},
-  {n:"Nick's Door Sports Bar",a:"458 SW 2ND",c:"Estacada",r:"oregoncity",lat:45.288555,lon:-122.339293,p:"503-630-5989",t:2},
+  {n:"Nick's Door Sports Bar",a:"458 SW 2ND",c:"Estacada",r:"oregoncity",lat:45.288555,lon:-122.339293,p:"503-577-9735",t:2},
   {n:"Circle Inn Tavern",a:"3007 PACIFIC AVE",c:"Forest Grove",r:"hillsboro",lat:45.520405,lon:-123.093755,p:"503-357-4700",t:2},
   {n:"Diamond Palace Restaurant",a:"1921 MAIN ST",c:"Forest Grove",r:"hillsboro",lat:45.519025,lon:-123.111773,p:"503-359-8822",t:2},
-  {n:"Mcmenamin's Grand Lodge",a:"3505 PACIFIC AVE",c:"Forest Grove",r:"hillsboro",lat:45.521752,lon:-123.085682,p:"503-223-0109",t:2},
+  {n:"Mcmenamin's Grand Lodge",a:"3505 PACIFIC AVE",c:"Forest Grove",r:"hillsboro",lat:45.521752,lon:-123.085682,p:"503-992-9533",t:2},
   {n:"Vogie's Bar",a:"464 PORTLAND AVE",c:"Gladstone",r:"oregoncity",lat:45.379971,lon:-122.594508,p:"503-657-3626",t:2},
-  {n:"Jay's Bar & Grill",a:"11595 SE 82ND",c:"Happy Valley",r:"milwaukie",lat:45.439154,lon:-122.579477,p:"503-329-8959",t:3},
+  {n:"Jay's Bar & Grill",a:"11595 SE 82ND",c:"Happy Valley",r:"milwaukie",lat:45.439154,lon:-122.579477,p:"503-305-6291",t:3},
   {n:"The Heritage Pub",a:"10601 SE 82ND AVE",c:"Happy Valley",r:"milwaukie",lat:45.446035,lon:-122.579194,p:"503-654-1553",t:3},
-  {n:"Hillsboro Bar & Grill",a:"359 E MAIN ST",c:"Hillsboro",r:"hillsboro",lat:45.522776,lon:-122.984925,p:"503-648-7327",t:2},
+  {n:"Hillsboro Bar & Grill",a:"359 E MAIN ST",c:"Hillsboro",r:"hillsboro",lat:45.522776,lon:-122.984925,p:"503-372-9763",t:2},
   {n:"Maguffy's Pub II",a:"2401 NE CORNELL RD",c:"Hillsboro",r:"hillsboro",lat:45.531323,lon:-122.95872,p:"503-693-9700",t:4},
-  {n:"O'Brien's Pub",a:"2020 NE CORNELL RD",c:"Hillsboro",r:"hillsboro",lat:45.530129,lon:-122.961464,p:"503-535-9079",t:2},
+  {n:"O'Brien's Pub",a:"2020 NE CORNELL RD",c:"Hillsboro",r:"hillsboro",lat:45.530129,lon:-122.961464,p:"503-547-0400",t:2},
   {n:"Player's Box",a:"1823 SE TUALATIN VALLEY HWY",c:"Hillsboro",r:"hillsboro",lat:45.50816,lon:-122.963998,p:"503-747-3249",t:4},
   {n:"Topgolf",a:"5505 NE HUFFMAN ST",c:"Hillsboro",r:"hillsboro",lat:45.559861,lon:-122.924092,p:"503-549-5197",t:2},
-  {n:"Gemini Bar & Grill",a:"456 N STATE ST",c:"Lake Oswego",r:"milwaukie",lat:45.420043,lon:-122.663129,p:"503-894-6377",t:6},
+  {n:"Gemini Bar & Grill",a:"456 N STATE ST",c:"Lake Oswego",r:"milwaukie",lat:45.420043,lon:-122.663129,p:"503-894-6377",t:6,x:"Reported ejected from the building in 2024; site now trades as The Cut Supper Club"},
   {n:"Hanko's Sports Bar & Grill",a:"4 MONROE PKWY",c:"Lake Oswego",r:"tigard",lat:45.431834,lon:-122.703402,p:"503-697-7819",t:2},
   {n:"Jo's Saloon & Eatery",a:"4400 SE INTERNATIONAL Way",c:"Milwaukie",r:"milwaukie",lat:45.435865,lon:-122.617725,p:"503-653-6798",t:4},
   {n:"River Roadhouse",a:"11921 SE 22ND",c:"Milwaukie",r:"milwaukie",lat:45.438172,lon:-122.641178,p:"503-653-5885",t:3},
@@ -220,8 +229,8 @@
   {n:"The Old Dolphin",a:"17180 SE McLoughlin Blvd",c:"Milwaukie",r:"milwaukie",lat:45.39974,lon:-122.61824,p:"503-908-1177",t:null},
   {n:"Wichita Pub",a:"11481 SE HWY 212",c:"Milwaukie",r:"milwaukie",lat:45.408314,lon:-122.544875,p:"503-657-8344",t:2},
   {n:"Sundowner",a:"115 W MAIN ST",c:"Molalla",r:"oregoncity",lat:45.147661,lon:-122.577376,p:"503-829-6434",t:2},
-  {n:"Wildhorse Bar & Grill",a:"110 S MOLALLA AVE",c:"Molalla",r:"oregoncity",lat:45.14712,lon:-122.577438,p:"503-621-8021",t:2},
-  {n:"The Old Hitchin' Post Restaurant",a:"10565 NW GLENCOE RD",c:"North Plains",r:"hillsboro",lat:45.596817,lon:-122.99399,p:"503-757-7931",t:2},
+  {n:"Wildhorse Bar & Grill",a:"110 S MOLALLA AVE",c:"Molalla",r:"oregoncity",lat:45.14712,lon:-122.577438,p:"503-600-0267",t:2},
+  {n:"The Old Hitchin' Post Restaurant",a:"10565 NW GLENCOE RD",c:"North Plains",r:"hillsboro",lat:45.596817,lon:-122.99399,p:"503-647-5080",t:2},
   {n:"Milwaukie Elk's Lodge #142",a:"13121 SE MCLOUGHLIN BLVD",c:"Oak Grove",r:"milwaukie",lat:45.428476,lon:-122.634509,p:"503-654-9588",t:2},
   {n:"Mcanulty & Barry's",a:"820 MAIN ST",c:"Oregon City",r:"oregoncity",lat:45.35861,lon:-122.606635,p:"503-723-7192",t:3},
   {n:"Midway Historic Public House",a:"1003 7TH ST",c:"Oregon City",r:"oregoncity",lat:45.354627,lon:-122.601287,p:"503-656-9501",t:12},
@@ -235,22 +244,22 @@
   {n:"Leo's Lair #2",a:"13587 NW CORNELL RD",c:"Portland",r:"beaverton",lat:45.528523,lon:-122.816054,p:"971-246-5528",t:2},
   {n:"Mai Wah Restaurant",a:"18088 SE MCLOUGHLIN BLVD",c:"Portland",r:"milwaukie",lat:45.39174,lon:-122.61312,p:"503-659-0323",t:2},
   {n:"O'Aces",a:"18080 SE McLoughlin Blvd",c:"Portland",r:"milwaukie",lat:45.392412,lon:-122.612951,p:"503-387-5116",t:null},
-  {n:"Silver Birch Kitchen + Lounge",a:"9225 SW ALLEN BLVD",c:"Portland",r:"beaverton",lat:45.47198,lon:-122.772312,p:"503-522-7499",t:2},
+  {n:"Silver Birch Kitchen + Lounge",a:"9225 SW ALLEN BLVD",c:"Portland",r:"beaverton",lat:45.47198,lon:-122.772312,p:"503-522-7499",t:2,x:"Reported closed March 2026; some directories still say temporarily closed for remodel"},
   {n:"The Old Market Pub & Brewery",a:"6959 SW MULTNOMAH RD",c:"Portland",r:"tigard",lat:45.46583,lon:-122.74825,p:"503-244-2337",t:4},
   {n:"Wan Q Restaurant & Lounge",a:"13520 NW CORNELL RD",c:"Portland",r:"beaverton",lat:45.526762,lon:-122.816084,p:"503-644-0003",t:3},
   {n:"West Union Sports Pub & Family Rest",a:"5340 NW 185TH",c:"Portland",r:"beaverton",lat:45.558219,lon:-122.867045,p:"503-629-5509",t:4},
   {n:"Donny's Gateway Pub",a:"39100 PIONEER BLVD",c:"Sandy",r:"oregoncity",lat:45.396118,lon:-122.260615,p:"503-826-0309",t:2},
   {n:"No Place Saloon",a:"38725 PROCTOR BLVD",c:"Sandy",r:"oregoncity",lat:45.397505,lon:-122.264979,p:"503-668-6415",t:2},
-  {n:"Last Call",a:"16450 SW LANGER DR",c:"Sherwood",r:"tigard",lat:45.365982,lon:-122.845367,p:"503-625-6495",t:2},
-  {n:"Bull Mountain Bar & Grill",a:"13727 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.420603,lon:-122.786485,p:"760-889-6111",t:2},
+  {n:"Last Call",a:"16450 SW LANGER DR",c:"Sherwood",r:"tigard",lat:45.365982,lon:-122.845367,p:"503-610-1111",t:2},
+  {n:"Bull Mountain Bar & Grill",a:"13727 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.420603,lon:-122.786485,p:"503-443-3888",t:2},
   {n:"Canton Phoenix",a:"14455 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.4158,lon:-122.79147,p:"503-620-3536",t:3},
-  {n:"Home Turf Sportsbar & Grill",a:"13500 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.421441,lon:-122.782121,p:"503-740-2440",t:3},
+  {n:"Home Turf Sportsbar & Grill",a:"13500 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.421441,lon:-122.782121,p:"503-968-5778",t:3},
   {n:"Hotpot Palace",a:"11530 SW PACIFIC HWY",c:"Tigard",r:"tigard",lat:45.44061,lon:-122.74867,p:"503-246-4055",t:2},
-  {n:"Mcmenamin's Greenway Pub",a:"12272 SW SCHOLLS FERRY RD",c:"Tigard",r:"tigard",lat:45.443121,lon:-122.803287,p:"503-223-0109",t:2},
-  {n:"The Aura Night Club & Lounge",a:"10935 SW 68TH PKWY",c:"Tigard",r:"tigard",lat:45.440954,lon:-122.748027,p:"971-400-5081",t:2},
+  {n:"Mcmenamin's Greenway Pub",a:"12272 SW SCHOLLS FERRY RD",c:"Tigard",r:"tigard",lat:45.443121,lon:-122.803287,p:"503-590-1865",t:2},
+  {n:"The Aura Night Club & Lounge",a:"10935 SW 68TH PKWY",c:"Tigard",r:"tigard",lat:45.440954,lon:-122.748027,p:"503-206-6561",t:2},
   {n:"The Spot Sports Bar & Grill",a:"8705 SW LOCUST ST",c:"Tigard",r:"tigard",lat:45.446828,lon:-122.766619,p:"503-208-2514",t:2},
   {n:"Bushwhackers",a:"8200 SW TONKA",c:"Tualatin",r:"tigard",lat:45.379913,lon:-122.760926,p:"503-563-5023",t:2},
-  {n:"Pub 26",a:"67351 E HWY 26",c:"Welches",r:"oregoncity",lat:45.351191,lon:-121.972283,p:"503-564-9266",t:2}
+  {n:"Pub 26",a:"67351 E HWY 26",c:"Welches",r:"oregoncity",lat:45.351191,lon:-121.972283,p:"503-564-9072",t:2}
       ];
       var COUNTIES = [
   {name:"Clackamas County",color:"#0f766e",geo:{"type":"Polygon","coordinates":[[[-122.8679985,45.259634],[-122.8497598,45.2596846],[-122.8345733,45.2740535],[-122.7849085,45.2740689],[-122.7849313,45.2595515],[-122.7388101,45.2595895],[-122.7520034,45.2429343],[-122.7477194,45.2359637],[-122.7503813,45.2322735],[-122.7453751,45.2327738],[-122.7526295,45.2290509],[-122.746963,45.22589],[-122.7454252,45.2160971],[-122.7478155,45.2111543],[-122.7591035,45.2083324],[-122.7556425,45.207433],[-122.7590817,45.2009172],[-122.7531185,45.2016209],[-122.7498172,45.1950838],[-122.7548778,45.1966063],[-122.7528385,45.1917561],[-122.7600846,45.1945361],[-122.7531394,45.1871765],[-122.7605777,45.182947],[-122.7519526,45.1819985],[-122.7663889,45.1634448],[-122.7749167,45.1623905],[-122.7700563,45.1592187],[-122.7884224,45.1299269],[-122.7758968,45.1233881],[-122.7758393,45.1187217],[-122.7499234,45.1077778],[-122.7436003,45.0964385],[-122.7197909,45.0798125],[-122.7172139,45.0699589],[-122.7050762,45.0589936],[-122.6786834,45.0463962],[-122.6697689,45.0466317],[-122.6490069,45.0323749],[-122.6342146,45.0338651],[-122.5960063,45.0200149],[-122.5947452,44.9909905],[-122.5683522,44.9831899],[-122.5596619,44.9650957],[-122.5352811,44.9365622],[-122.5203413,44.9342351],[-122.5048901,44.9181617],[-122.486141,44.9226082],[-122.4586891,44.9151412],[-122.4372815,44.9029769],[-122.3993076,44.9038973],[-122.3932024,44.8918033],[-122.4010155,44.8857092],[-121.7342967,44.8857794],[-121.7167958,44.8982912],[-121.7144036,44.9061771],[-121.7288997,44.9048184],[-121.7471574,44.9145268],[-121.7460885,44.9240663],[-121.763826,44.9418862],[-121.779952,44.9351375],[-121.7959316,44.9364328],[-121.7923893,44.9591075],[-121.8034333,44.9773722],[-121.8051664,45.0117781],[-121.7946339,45.0171943],[-121.7813291,45.0155944],[-121.7818887,45.0340814],[-121.7779379,45.0377749],[-121.7681938,45.039866],[-121.7440491,45.0338378],[-121.7184414,45.0372923],[-121.7213909,45.0467954],[-121.6891495,45.0668096],[-121.6585587,45.0663727],[-121.6597762,45.0794938],[-121.6515877,45.0878501],[-121.6657981,45.1198839],[-121.6853171,45.1236664],[-121.694862,45.1171687],[-121.7080156,45.1337199],[-121.710761,45.1507194],[-121.7252531,45.1591639],[-121.7485455,45.190694],[-121.7476085,45.2055455],[-121.7141862,45.2116098],[-121.7019741,45.230042],[-121.68262,45.2285419],[-121.686326,45.2341116],[-121.6808667,45.2505944],[-121.6964024,45.2553898],[-121.6969158,45.2605307],[-121.6792274,45.2965227],[-121.7027192,45.3296013],[-121.7046274,45.3405742],[-121.700781,45.3685006],[-121.6959867,45.3734497],[-121.7260899,45.394765],[-121.7763838,45.4027668],[-121.792835,45.4152434],[-121.7959571,45.4267594],[-121.8069565,45.435223],[-121.8067822,45.4541407],[-121.8196686,45.4616631],[-122.6415818,45.4614834],[-122.6610971,45.4578017],[-122.6454981,45.4426639],[-122.6510862,45.4365523],[-122.6489078,45.4326318],[-122.743706,45.4332855],[-122.7437159,45.3320679],[-122.8054669,45.3317666],[-122.8055494,45.346283],[-122.8464327,45.3461127],[-122.8464886,45.3171967],[-122.8679025,45.3173456],[-122.8679985,45.259634]]]}},
@@ -308,11 +317,13 @@
 
       VENUES.forEach(function (v, i) {
         var m = L.marker([v.lat, v.lon], {
-          icon: L.divIcon({ className:'pin-wrap', html:'<div class="pin"></div>',
+          icon: L.divIcon({ className:'pin-wrap',
+                            html:'<div class="pin' + (v.x ? ' dead' : '') + '"></div>',
                             iconSize:[13,13], iconAnchor:[6.5,6.5] }), title: v.n });
         var href = telHref(v.p);
         m.bindPopup('<b>' + esc(v.n) + '</b><span class="pc">' + esc(v.a) + '<br>' + esc(v.c) +
-          (v.t == null ? '' : '<br>' + esc(tables(v))) + '</span>' +
+          (v.t == null ? '' : '<br>' + esc(tables(v))) +
+          (v.x ? '<br><b style="display:inline;color:#8a5a00">Closed?</b> ' + esc(v.x) : '') + '</span>' +
           (v.p ? (href ? '<a class="ptel" href="' + href + '">' + esc(v.p) + '</a>'
                        : '<span class="pc ptel">' + esc(v.p) + '</span>') : '') +
           '<a href="' + dirs(v) + '" target="_blank" rel="noopener">Directions</a>' +
@@ -386,9 +397,11 @@
         rows.forEach(function (x) {
           markers[x.i].addTo(map);
           var d=document.createElement('div');
-          d.className='v'; d.tabIndex=0; d.setAttribute('role','button');
+          d.className = 'v' + (x.v.x ? ' is-x' : '');
+          d.tabIndex=0; d.setAttribute('role','button');
           d.setAttribute('aria-current', selected===x.i ? 'true':'false');
           var href = telHref(x.v.p), foot = '';
+          if (x.v.x) foot += '<span class="xbadge" title="'+esc(x.v.x)+'">Closed?</span>';
           if (x.v.t != null) foot += '<span class="tbadge">'+esc(tables(x.v))+'</span>';
           if (x.v.p) foot += href ? '<a href="'+href+'">'+esc(x.v.p)+'</a>'
                                   : '<span>'+esc(x.v.p)+'</span>';
