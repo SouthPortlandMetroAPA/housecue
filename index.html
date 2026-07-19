@@ -19,6 +19,9 @@
       .bar{height:var(--hdr);flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;color:#fff;
         background:linear-gradient(135deg,var(--spm-primary),var(--spm-accent));box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:900}
       .bar h1{font-size:1rem;font-weight:900;white-space:nowrap}
+      .orgShort{display:none}
+      body.mobile .orgFull{display:none}
+      body.mobile .orgShort{display:inline}
       .bar .sub{font-size:.82rem;opacity:.9;white-space:nowrap}
       .bar .spacer{flex:1}
       .bar .tally{font-size:.8rem;opacity:.92;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -107,8 +110,8 @@
   <body>
     <div class="app">
       <div class="bar">
-        <h1>House Cue</h1>
-        <span class="sub">Where we play</span>
+        <h1><span class="orgFull">South Portland Metro APA</span><span class="orgShort">SPM APA</span></h1>
+        <span class="sub">House Cue</span>
         <span class="spacer"></span>
         <span class="tally" id="tally"></span>
       </div>
