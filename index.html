@@ -199,7 +199,11 @@
   {k:"tigard",label:"Tigard"},
   {k:"hillsboro",label:"Hillsboro & West"}
       ];
-      var VENUES = [
+      /* Hard-coded fallback. The live list comes from slate.host_locations
+         (managed in Slate → House Cue tab) and REPLACES this on load; this
+         array is only used if that fetch fails or returns nothing, so the map
+         is never blank. Keep it roughly current as a safety net. */
+      var VENUES_FALLBACK = [
   {n:"89 Sports Bar and Billiards",a:"18641 SW Tualatin Valley Hwy",c:"Aloha",r:"beaverton",lat:45.494745,lon:-122.868815,p:"503-848-8888",t:12},
   {n:"Dr Feelgoods Pub",a:"20419 SW Tualatin Valley Hwy",c:"Aloha",r:"beaverton",lat:45.497001,lon:-122.887021,p:"503-591-9663",t:3},
   {n:"The Aloha Station",a:"3765 SW 185TH",c:"Aloha",r:"beaverton",lat:45.492657,lon:-122.867533,p:"503-649-7666",t:4},
@@ -326,25 +330,34 @@
       var xPin   = function (v) { return !v.x ? '' : (v.xk === 'temp' ? ' paused' : ' dead'); };
 
       var filter = 'all', tfilter = 'all', selected = null, markers = [], cards = [];
+      var VENUES = VENUES_FALLBACK;   /* replaced by the live DB list on load */
 
-      VENUES.forEach(function (v, i) {
-        var m = L.marker([v.lat, v.lon], {
-          icon: L.divIcon({ className:'pin-wrap',
-                            html:'<div class="pin' + xPin(v) + '"></div>',
-                            iconSize:[13,13], iconAnchor:[6.5,6.5] }), title: v.n });
-        var href = telHref(v.p);
-        m.bindPopup('<b>' + esc(v.n) + '</b><span class="pc">' + esc(v.a) + '<br>' + esc(v.c) +
-          (v.t == null ? '' : '<br>' + esc(tables(v))) +
-          (v.x ? '<br><b style="display:inline;color:' + (v.xk === 'temp' ? '#274a80' : '#8a5a00') +
-                 '">' + esc(xLabel(v)) + '</b> ' + esc(v.x) : '') + '</span>' +
-          (v.p ? (href ? '<a class="ptel" href="' + href + '">' + esc(v.p) + '</a>'
-                       : '<span class="pc ptel">' + esc(v.p) + '</span>') : '') +
-          '<a href="' + dirs(v) + '" target="_blank" rel="noopener">Directions</a>' +
-          '<a href="' + gmap(v) + '" target="_blank" rel="noopener">Google Maps</a>',
-          { autoPan:false });
-        m.on('click', function () { select(i, false); });
-        markers.push(m);
-      });
+      /* Build (or rebuild) one marker per venue in the current VENUES. Idempotent:
+         clears any existing markers first, so it can run again after the live
+         fetch swaps VENUES. */
+      function buildMarkers() {
+        markers.forEach(function (m) { if (map.hasLayer(m)) map.removeLayer(m); });
+        markers.length = 0;
+        VENUES.forEach(function (v, i) {
+          var m = L.marker([v.lat, v.lon], {
+            icon: L.divIcon({ className:'pin-wrap',
+                              html:'<div class="pin' + xPin(v) + '"></div>',
+                              iconSize:[13,13], iconAnchor:[6.5,6.5] }), title: v.n });
+          var href = telHref(v.p);
+          m.bindPopup('<b>' + esc(v.n) + '</b><span class="pc">' + esc(v.a) + '<br>' + esc(v.c) +
+            (v.t == null ? '' : '<br>' + esc(tables(v))) +
+            (v.x ? '<br><b style="display:inline;color:' + (v.xk === 'temp' ? '#274a80' : '#8a5a00') +
+                   '">' + esc(xLabel(v)) + '</b> ' + esc(v.x) : '') + '</span>' +
+            (v.p ? (href ? '<a class="ptel" href="' + href + '">' + esc(v.p) + '</a>'
+                         : '<span class="pc ptel">' + esc(v.p) + '</span>') : '') +
+            '<a href="' + dirs(v) + '" target="_blank" rel="noopener">Directions</a>' +
+            '<a href="' + gmap(v) + '" target="_blank" rel="noopener">Google Maps</a>',
+            { autoPan:false });
+          m.on('click', function () { select(i, false); });
+          markers.push(m);
+        });
+      }
+      buildMarkers();
 
       /* Only mobile needs an offset: there the sheet overlays a full-bleed map.
          On tablet and desktop the rail is a SIBLING of the map, so Leaflet's
@@ -503,6 +516,35 @@
       if (TIER === 'mobile') { sheet(false); map.on('click', function(){ sheet(false); }); }
 
       render();
+
+      /* ── Live data from slate.host_locations (managed in Slate) ──────────
+         The map already rendered from VENUES_FALLBACK above, so this only
+         UPGRADES to the live list — a failure or empty result silently keeps
+         the fallback, and the map is never blank. anon key is public by design;
+         RLS makes the table read-only to it. */
+      (function loadLive() {
+        var SB = 'https://dqzbekoaysgaiqljueac.supabase.co/rest/v1/';
+        var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxemJla29heXNnYWlxbGp1ZWFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNzA5NzgsImV4cCI6MjA5MDc0Njk3OH0.cCdGxZ4zEFzU_r6lWSDeoNWG67Q4MSYCAtpds035dfU';
+        var sel = 'name,address,city,region,lat,lon,phone,table_count,closure_note,closure_kind';
+        fetch(SB + 'host_locations?is_active=eq.true&select=' + sel + '&order=city.asc,name.asc',
+          { headers: { apikey: ANON, 'Accept-Profile': 'slate' } })
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (rows) {
+            if (!rows || !rows.length) return;   // keep fallback
+            var mapped = rows.map(function (r) {
+              return { n: r.name, a: r.address || '', c: r.city || '', r: r.region || '',
+                       lat: r.lat, lon: r.lon, p: r.phone || '',
+                       t: (r.table_count == null ? null : r.table_count),
+                       x: r.closure_note || undefined, xk: r.closure_kind || undefined };
+            }).filter(function (v) { return v.lat != null && v.lon != null; });
+            if (!mapped.length) return;          // no plottable rows → keep fallback
+            VENUES = mapped;
+            selected = null;
+            buildMarkers();
+            render();
+          })
+          .catch(function (e) { if (window.console) console.warn('House Cue live load failed; using fallback', e); });
+      })();
 
       /* A resized window crossing a tier boundary must re-lay-out. Debounced,
          and only acts on an actual tier CHANGE so ordinary resizing does not
