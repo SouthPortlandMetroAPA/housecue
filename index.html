@@ -140,7 +140,8 @@
       body.tablet .pin.sel{width:26px;height:26px}
 
       body.desktop{--rail:340px}
-    </style>
+      .leaflet-tile-pane{ filter:grayscale(.55) saturate(.6) brightness(1.04); }   /* muted basemap without CARTO */
+</style>
   </head>
   <body>
     <div class="app">
@@ -283,9 +284,11 @@
          yellow arterials and pink motorways - a 10% overlay on top of that is
          invisible, which is exactly the complaint. A muted basemap lets the
          shading carry meaning instead of competing. */
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19, subdomains: 'abcd',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      /* 2026-09-18: CARTO began watermarking key-less basemaps 'API KEY REQUIRED' (the operator saw it on the live map).
+         Standard OSM raster tiles need no key; the tile pane is desaturated in CSS to keep the muted look. */
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
       function inRing(lon,lat,r){var i,j,ins=false;for(i=0,j=r.length-1;i<r.length;j=i++){
